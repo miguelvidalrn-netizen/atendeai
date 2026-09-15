@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  /* Paleta AtendeAI — tons frios de "ink" combinados com coral quente de conversa/ação */
+  --ink: #14132b;
+  --ink-soft: #524f6b;
+  --paper: #f5f6fa;
+  --paper-raised: #ffffff;
+  --coral: #ff5c38;
+  --coral-dark: #e2431f;
+  --violet: #6c63ff;
+  --violet-soft: #e7e5ff;
+  --line: #e2e1ee;
+  --success: #1f9d55;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-coral: var(--coral);
+  --color-coral-dark: var(--coral-dark);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-manrope);
+}
+
+* {
+  border-color: var(--line);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--coral);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
