@@ -12,6 +12,8 @@ export type InboxItem = {
   updatedAt: Date;
   lastMessage: string | null;
   lastMessageSender: "CLIENTE" | "EMPRESA" | "IA" | null;
+  /** true quando a IA ou uma automação pediu atendimento humano. */
+  handoffRequested: boolean;
 };
 
 /**
@@ -43,6 +45,7 @@ export async function listInbox(companyId: string): Promise<InboxItem[]> {
       updatedAt: conversations.updatedAt,
       lastMessage: lastMessage.content,
       lastMessageSender: lastMessage.sender,
+      handoffRequested: conversations.handoffRequested,
     })
     .from(conversations)
     .leftJoin(

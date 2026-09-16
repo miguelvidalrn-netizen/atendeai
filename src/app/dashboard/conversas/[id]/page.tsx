@@ -6,10 +6,12 @@ import {
   getConversationById,
   listMessagesByConversation,
 } from "@/lib/queries/conversations";
+import { getLeadByConversation } from "@/lib/queries/leads";
 import { isAIConfigured } from "@/lib/ai/service";
 import { ConversationThread } from "@/components/dashboard/conversation-thread";
 import { Badge } from "@/components/ui/primitives";
 import { CloseConversationButton } from "@/components/dashboard/close-conversation-button";
+import { LeadContextPanel } from "@/components/dashboard/lead-context-panel";
 
 export const metadata: Metadata = {
   title: "Conversa — AtendeAI",
@@ -42,7 +44,10 @@ export default async function ConversationDetailPage({
     notFound();
   }
 
-  const messages = await listMessagesByConversation(conversation.id);
+  const [messages, lead] = await Promise.all([
+    listMessagesByConversation(conversation.id),
+    getLeadByConversation(conversation.id, company.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,13 +75,32 @@ export default async function ConversationDetailPage({
                 · {conversation.customerContact}
               </span>
             )}
+            {conversation.handoffRequested && (
+              <Badge tone="warning">Aguardando atendimento humano</Badge>
+            )}
           </div>
+          {conversation.handoffRequested && conversation.handoffReason && (
+            <p className="mt-1 text-xs text-ink-soft">
+              Motivo: {conversation.handoffReason}
+            </p>
+          )}
         </div>
 
         {conversation.status !== "FECHADA" && (
           <CloseConversationButton conversationId={conversation.id} />
         )}
       </div>
+
+      {lead && (
+        <LeadContextPanel
+          lead={{
+            id: lead.id,
+            status: lead.status,
+            estimatedValue: lead.estimatedValue,
+            notes: lead.notes,
+          }}
+        />
+      )}
 
       <div className="flex h-[60vh] min-h-96 overflow-hidden rounded-2xl border border-line bg-paper-raised">
         <ConversationThread

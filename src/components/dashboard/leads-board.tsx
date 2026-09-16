@@ -19,6 +19,8 @@ export type LeadStatus =
   | "GANHO"
   | "PERDIDO";
 
+export type LeadChannel = "WEBCHAT" | "WHATSAPP" | "INSTAGRAM" | "OUTRO" | null;
+
 export type LeadRow = {
   id: string;
   name: string;
@@ -26,15 +28,47 @@ export type LeadRow = {
   status: LeadStatus;
   estimatedValue: string | null;
   notes: string | null;
+  conversationId: string | null;
+  updatedAt: Date;
+  /** Canal da conversa que originou o lead. Nulo quando criado manualmente. */
+  channel: LeadChannel;
 };
 
+// Vocabulário de status do produto. Os valores gravados no banco (EM_CONTATO,
+// QUALIFICADO, GANHO) não mudam — só o rótulo exibido, para não exigir
+// migração nem tocar em nenhuma outra parte que já depende desses valores
+// (tools de IA, automações, filtros).
 const STATUSES: { value: LeadStatus; label: string }[] = [
   { value: "NOVO", label: "Novo" },
-  { value: "EM_CONTATO", label: "Em contato" },
-  { value: "QUALIFICADO", label: "Qualificado" },
-  { value: "GANHO", label: "Ganho" },
+  { value: "EM_CONTATO", label: "Em atendimento" },
+  { value: "QUALIFICADO", label: "Interessado" },
+  { value: "GANHO", label: "Convertido" },
   { value: "PERDIDO", label: "Perdido" },
 ];
+
+const CHANNEL_LABEL: Record<NonNullable<LeadChannel>, string> = {
+  WEBCHAT: "Webchat",
+  WHATSAPP: "WhatsApp",
+  INSTAGRAM: "Instagram",
+  OUTRO: "Outro",
+};
+
+function formatRelativeDate(date: Date) {
+  const value = new Date(date);
+  const diffMs = Date.now() - value.getTime();
+  const diffMinutes = Math.round(diffMs / 60000);
+
+  if (diffMinutes < 1) return "agora há pouco";
+  if (diffMinutes < 60) return `há ${diffMinutes} min`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `há ${diffHours}h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  if (diffDays < 30) return `há ${diffDays}d`;
+
+  return value.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
 
 const initialState: LeadFormState = {};
 
@@ -71,6 +105,21 @@ function LeadCard({ lead }: { lead: LeadRow }) {
       {lead.notes && (
         <p className="mt-2 line-clamp-2 text-xs text-ink-soft">{lead.notes}</p>
       )}
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+        <span>
+          Origem: {lead.channel ? CHANNEL_LABEL[lead.channel] : "Manual"}
+        </span>
+        <span>Última interação: {formatRelativeDate(lead.updatedAt)}</span>
+        {lead.conversationId && (
+          <a
+            href={`/dashboard/conversas/${lead.conversationId}`}
+            className="font-medium text-ink underline decoration-line underline-offset-2 hover:text-coral"
+          >
+            Ver conversa
+          </a>
+        )}
+      </div>
 
       <div className="mt-3 flex items-center gap-2">
         <select

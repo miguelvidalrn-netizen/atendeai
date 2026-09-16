@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { createLogger, redact } from "@/lib/observability/logger";
@@ -50,6 +50,24 @@ export async function listAuditLogs(companyId: string, limit = 100) {
     .select()
     .from(auditLogs)
     .where(eq(auditLogs.companyId, companyId))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+}
+
+/**
+ * Histórico de um tipo de entidade inteiro (ex: todos os leads), agrupável
+ * no chamador por `entityId`. Uma única query evita N+1 ao montar o
+ * histórico de várias entidades na mesma tela (ex: o board de leads).
+ */
+export async function listAuditLogsByEntity(
+  companyId: string,
+  entity: string,
+  limit = 300
+) {
+  return db
+    .select()
+    .from(auditLogs)
+    .where(and(eq(auditLogs.companyId, companyId), eq(auditLogs.entity, entity)))
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
 }

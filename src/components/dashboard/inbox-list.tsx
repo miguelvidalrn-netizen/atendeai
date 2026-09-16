@@ -136,6 +136,9 @@ export function InboxList({
                     <span className="text-xs text-ink-soft">
                       {CHANNEL_LABEL[item.channel]}
                     </span>
+                    {item.handoffRequested && (
+                      <Badge tone="warning">Aguardando humano</Badge>
+                    )}
                   </div>
                 </Link>
               </li>
