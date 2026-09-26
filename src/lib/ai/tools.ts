@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { createLogger } from "@/lib/observability/logger";
 import { emit } from "@/lib/events";
+import { getMemoryProvider } from "./memory";
 import type { AITool, ToolContext, ToolResult } from "./types";
 
 /**
@@ -250,6 +251,13 @@ const createLeadTool: AITool<
       ctx.actorUserId
     );
 
+    // Memória durável: o próximo atendimento deste mesmo cliente (mesmo
+    // contato) já chega sabendo que existe uma oportunidade em aberto.
+    await getMemoryProvider().saveCustomerMemory(ctx.companyId, ctx.customerKey, {
+      summary: `Cliente demonstrou interesse em "${input.name}". Lead em aberto, status NOVO.`,
+      attributes: { lastLeadId: lead.id, lastLeadStatus: "NOVO" },
+    });
+
     return ok({ leadId: lead.id, created: true });
   },
 };
@@ -305,6 +313,14 @@ const updateLeadTool: AITool<
         ctx.actorUserId
       );
     }
+
+    // Atualiza a memória com o desfecho — relevante sobretudo para GANHO e
+    // PERDIDO, que encerram o ciclo e mudam como a próxima conversa deve
+    // começar (ex: não insistir num produto já comprado).
+    await getMemoryProvider().saveCustomerMemory(ctx.companyId, ctx.customerKey, {
+      summary: `Lead "${lead.name}" está com status ${input.status}.${input.notes ? ` Observação: ${input.notes}` : ""}`,
+      attributes: { lastLeadId: lead.id, lastLeadStatus: input.status },
+    });
 
     return ok({ leadId: lead.id, status: input.status });
   },

@@ -77,6 +77,12 @@ export type ToolContext = {
   companyId: string;
   conversationId: string;
   actorUserId: string | null;
+  /**
+   * Chave estável do cliente (contato normalizado ou id da conversa quando
+   * não há contato). Usada pelas tools que escrevem memória durável, para
+   * que o mesmo cliente seja reconhecido em conversas futuras.
+   */
+  customerKey: string;
 };
 
 export type ToolResult<T = unknown> =

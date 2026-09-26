@@ -198,11 +198,13 @@ export function getMemoryProvider(): MemoryProvider {
  * MULTI-TENANT: recebe companyId já resolvido pelo servidor e valida que a
  * conversa pertence a ele antes de carregar qualquer coisa.
  */
+export type BuiltContext = { context: AIContext; customerKey: string };
+
 export async function buildContext(params: {
   companyId: string;
   conversationId: string;
   query?: string;
-}): Promise<AIContext | null> {
+}): Promise<BuiltContext | null> {
   const memory = getMemoryProvider();
 
   const [conversation] = await db
@@ -248,12 +250,15 @@ export async function buildContext(params: {
     : null;
 
   return {
-    company: business.company,
-    catalog: business.catalog,
-    settings: business.settings,
-    knowledge,
-    history,
-    customerMemory,
-    lead,
+    context: {
+      company: business.company,
+      catalog: business.catalog,
+      settings: business.settings,
+      knowledge,
+      history,
+      customerMemory,
+      lead,
+    },
+    customerKey,
   };
 }
