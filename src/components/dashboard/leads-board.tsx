@@ -11,6 +11,7 @@ import {
 import { Field } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { EmptyState } from "@/components/ui/primitives";
+import type { AuditLogRow } from "@/lib/audit";
 
 export type LeadStatus =
   | "NOVO"
@@ -45,6 +46,10 @@ const STATUSES: { value: LeadStatus; label: string }[] = [
   { value: "GANHO", label: "Convertido" },
   { value: "PERDIDO", label: "Perdido" },
 ];
+
+const STATUS_LABEL_BY_VALUE = Object.fromEntries(
+  STATUSES.map((status) => [status.value, status.label])
+) as Record<LeadStatus, string>;
 
 const CHANNEL_LABEL: Record<NonNullable<LeadChannel>, string> = {
   WEBCHAT: "Webchat",
@@ -82,7 +87,52 @@ function formatValue(value: string | null) {
   });
 }
 
-function LeadCard({ lead }: { lead: LeadRow }) {
+function formatAuditEntry(row: AuditLogRow): string {
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+
+  switch (row.action) {
+    case "lead.created":
+      return "Lead criado";
+    case "lead.status_changed": {
+      const from = STATUS_LABEL_BY_VALUE[metadata.from as LeadStatus] ?? metadata.from;
+      const to = STATUS_LABEL_BY_VALUE[metadata.to as LeadStatus] ?? metadata.to;
+      return `Status alterado: ${from} → ${to}`;
+    }
+    case "lead.converted":
+      return "Marcado como convertido";
+    case "automation.note":
+      return typeof metadata.note === "string" ? metadata.note : "Ação de automação";
+    default:
+      return row.action;
+  }
+}
+
+function LeadHistory({ entries }: { entries: AuditLogRow[] }) {
+  if (entries.length === 0) return null;
+
+  return (
+    <details className="mt-2 text-[11px] text-ink-soft">
+      <summary className="cursor-pointer font-medium text-ink hover:text-coral">
+        Histórico ({entries.length})
+      </summary>
+      <ul className="mt-1.5 flex flex-col gap-1 border-l border-line pl-2.5">
+        {entries.slice(0, 5).map((entry) => (
+          <li key={entry.id}>
+            {formatAuditEntry(entry)} · {formatRelativeDate(entry.createdAt)}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function LeadCard({
+  lead,
+  history,
+}: {
+  lead: LeadRow;
+  history: AuditLogRow[];
+}) {
   const { isPending, error, run } = useRowAction();
   const value = formatValue(lead.estimatedValue);
 
@@ -149,11 +199,18 @@ function LeadCard({ lead }: { lead: LeadRow }) {
         </button>
       </div>
       <InlineError message={error} />
+      <LeadHistory entries={history} />
     </div>
   );
 }
 
-export function LeadsBoard({ leads }: { leads: LeadRow[] }) {
+export function LeadsBoard({
+  leads,
+  historyByLead,
+}: {
+  leads: LeadRow[];
+  historyByLead: Map<string, AuditLogRow[]>;
+}) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -271,7 +328,11 @@ export function LeadsBoard({ leads }: { leads: LeadRow[] }) {
                 </div>
                 <div className="flex flex-col gap-3">
                   {columnLeads.map((lead) => (
-                    <LeadCard key={lead.id} lead={lead} />
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      history={historyByLead.get(lead.id) ?? []}
+                    />
                   ))}
                 </div>
               </section>

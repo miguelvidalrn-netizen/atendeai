@@ -6,6 +6,8 @@ import { createLogger, redact } from "@/lib/observability/logger";
 
 const log = createLogger({ action: "audit" });
 
+export type AuditLogRow = typeof auditLogs.$inferSelect;
+
 export type AuditEntry = {
   companyId: string;
   userId?: string | null;
